@@ -1,0 +1,5 @@
+numpy
+scikit-learn
+gensim
+
+git+https://github.com/justinnhli/permspace.git
