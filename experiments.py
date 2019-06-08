@@ -816,13 +816,27 @@ def run_experiment(params):
     Parameters:
         params (NameSpace): The experiment parameters.
     """
-    print(params)
     corpus = Path(params.corpus_file).expanduser().resolve()
     corpus = debias_corpus(corpus, params)
     embedding = embed(corpus, params)
     embedding = debias_embedding(embedding, params)
     bias = measure_bias(embedding, params)
-    print(bias)
+    print(' '.join(str(part) for part in [
+        Path(params.corpus_file).name,
+        params.corpus_transform,
+        Path(params.swap_words_file).name,
+        params.embed_method,
+        params.fasttext_method,
+        params.embedding_transform,
+        Path(params.bolukbasi_subspace_words_file).name,
+        params.bolukbasi_subspace_aggregation,
+        Path(params.bolukbasi_gendered_words_file).name,
+        Path(params.bolukbasi_equalize_pairs_file).name,
+        Path(params.subspace_words_file).name,
+        params.subspace_aggregation,
+        Path(params.biased_words_file).name,
+        bias
+    ]))
 
 
 CORPUS_FILES = [
