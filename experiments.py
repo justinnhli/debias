@@ -48,11 +48,11 @@ def read_word_list(path):
         path (Path): The path of the words file.
 
     Returns:
-        List[str]: A list of the words in the file.
+        Set[str]: A list of the words in the file.
     """
-    words = []
+    words = set()
     for line in read_file(path):
-        words.extend(line.split())
+        words |= set(line.split())
     return words
 
 
