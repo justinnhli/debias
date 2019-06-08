@@ -679,6 +679,10 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
     """
     if out_path.exists():
         return WordEmbedding.load_word2vec_file(out_path)
+    for male_word, female_word in gender_pairs:
+        gendered_words.add(male_word)
+        gendered_words.add(female_word)
+        equalize_pairs.append((male_word, female_word))
     # expand the equalized pairs with their variants
     equalized_pair_variants = []
     for male_root_word, female_root_word in equalize_pairs:
@@ -703,9 +707,9 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
     projection = scale * extrusion
     new_vectors = vectors - projection
     # put the gendered words back in
-    for word, index in indices.items():
-        vector = embedding[word]
-        new_vectors[index] = vector
+    for word in gendered_words:
+        if word in indices:
+            new_vectors[indices[word]] = embedding[word]
     # normalize the new vectors
     new_vectors = np.array(new_vectors, dtype='float32')
     new_vectors /= np.linalg.norm(new_vectors, axis=1)[:, np.newaxis]
@@ -717,12 +721,13 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
         female_index = indices[female_word]
         male_vector = new_vectors[male_index]
         female_vector = new_vectors[female_index]
-        non_gender_component = reject((male_vector + female_vector) / 2, gender_direction[0])
-        gender_component = np.sqrt(1 - np.linalg.norm(non_gender_component)**2)
-        if (male_vector - female_vector).dot(gender_direction[0]) < 0:
+        mean_vector = (male_vector + female_vector) / 2
+        gender_component = project(mean_vector, gender_direction[0])
+        non_gender_component = mean_vector - gender_component
+        if (male_vector - female_vector).dot(gender_component) < 0:
             gender_component = -gender_component
-        new_vectors[male_index] = gender_component * gender_direction[0] + non_gender_component
-        new_vectors[female_index] = -gender_component * gender_direction[0] + non_gender_component
+        new_vectors[male_index] = gender_component + non_gender_component
+        new_vectors[female_index] = -gender_component + non_gender_component
     # normalize the new vectors again
     new_vectors = np.array(new_vectors, dtype='float32')
     new_vectors /= np.linalg.norm(new_vectors, axis=1)[:, np.newaxis]
@@ -750,7 +755,7 @@ def debias_embedding(embedding, params):
     if params.embedding_transform == 'none':
         return embedding
     elif params.embedding_transform == 'bolukbasi':
-        gender_pairs_path = Path(params.subspace_words_file)
+        gender_pairs_path = Path(params.bolukbasi_subspace_words_file)
         out_path_parts = [
             embedding.source.name,
             gender_pairs_path.stem,
