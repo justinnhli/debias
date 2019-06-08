@@ -581,8 +581,8 @@ def define_mean_gender_direction(embedding, gender_pairs):
         diff_vectors.append(normalize(diff_vector))
     if not diff_vectors:
         raise ValueError('embedding does not contain any gender pairs.')
-    result = np.mean(np.array(diff_vectors), axis=0)
-    return normalize(result)
+    gender_direction = normalize(np.mean(np.array(diff_vectors), axis=0))
+    return align_gender_direction(embedding, gender_direction, gender_pairs)
 
 
 def define_pca_gender_direction(embedding, gender_pairs):
@@ -612,7 +612,22 @@ def define_pca_gender_direction(embedding, gender_pairs):
     matrix = np.array(matrix)
     pca = PCA()
     pca.fit(matrix)
-    return normalize(pca.components_[0])
+    gender_direction = normalize(pca.components_[0])
+    return align_gender_direction(embedding, gender_direction, gender_pairs)
+
+
+def align_gender_direction(embedding, gender_direction, gender_pairs):
+    # if result is opposite the average female->male vector, flip it
+    total = 0
+    for male_word, female_word in gender_pairs:
+        if male_word not in embedding or female_word not in embedding:
+            continue
+        male_vector = embedding[male_word]
+        female_vector = embedding[female_word]
+        total += (male_vector - female_vector).dot(gender_direction)
+    if total < 0:
+        gender_direction = -gender_direction
+    return gender_direction
 
 
 def define_gender_direction(embedding, params):
