@@ -3,3 +3,4 @@ scikit-learn
 gensim
 
 git+https://github.com/justinnhli/permspace.git
+git+https://github.com/justinnhli/clusterun.git

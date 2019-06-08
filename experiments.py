@@ -14,6 +14,8 @@ from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import WordEmbeddingsKeyedVectors, Word2VecKeyedVectors
 from permspace import PermutationSpace
 
+from clusterun import sequencerun
+
 # constants
 
 CODE_PATH = Path(__file__).resolve().parent
@@ -808,121 +810,111 @@ def run_experiment(params):
     print(bias)
 
 
-def main():
-    """Run all experiments."""
-    # pylint: disable = bad-continuation
-    corpus_files = [
-        str(CORPORA_PATH.joinpath('wikipedia-1')),
-        str(CORPORA_PATH.joinpath('alice-in-wonderland')),
-    ]
-    gendered_words_files = [
-        str(DATA_PATH.joinpath('gendered-words', 'gender_specific_seed')),
-    ]
-    equalize_pairs_files = [
-        str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-equalize')),
-    ]
-    gender_pairs_files = [
-        str(DATA_PATH.joinpath('gender-pairs', 'all')),
-    ]
-    evaluation_pairs_files = [
-        str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-definitional')),
-    ]
-    biased_words_files = [
-        str(DATA_PATH.joinpath('biased-words', 'adjectives')),
-        str(DATA_PATH.joinpath('biased-words', 'occupations')),
-    ]
-    pspace = PermutationSpace(
-        [
-            'corpus_file',
-            'corpus_transform',
-            'swap_words_file',
-            'embed_method',
-            'fasttext_method',
-            'embedding_transform',
-            'bolukbasi_subspace_words_file',
-            'bolukbasi_subspace_aggregation',
-            'bolukbasi_gendered_words_file',
-            'bolukbasi_equalize_pairs_file',
-            'subspace_words_file',
-            'subspace_aggregation',
-            'biased_words_file',
-        ],
-        # corpus parameters
-        corpus_file=corpus_files,
-        # corpus transform parameters
-        corpus_transform=['none', 'replace', 'duplicate', 'random'],
-        swap_words_file=['none', *gender_pairs_files],
-        # embedding parameters
-        embed_method=['fasttext'],
-        fasttext_method=['none', 'cbow', 'skipgram'],
-        # embedding transform parameters
-        embedding_transform=['none', 'bolukbasi'],
-        bolukbasi_subspace_words_file=['none', *gender_pairs_files],
-        bolukbasi_subspace_aggregation=['none', 'mean', 'pca'],
-        bolukbasi_gendered_words_file=['none', *gendered_words_files],
-        bolukbasi_equalize_pairs_file=['none', *equalize_pairs_files],
-        # bias evaluation parameters
-        subspace_words_file=evaluation_pairs_files,
-        subspace_aggregation=['mean', 'pca'],
-        biased_words_file=biased_words_files,
-        bias_strictness=0.8,
-    ).filter(
-        lambda corpus_transform, embedding_transform:
-            corpus_transform == 'none' or embedding_transform == 'none'
-    ).filter_if(
-        (lambda corpus_transform: corpus_transform == 'none'),
-        (lambda swap_words_file: swap_words_file == 'none'),
-    ).filter_if(
-        (lambda corpus_transform: corpus_transform != 'none'),
-        (lambda swap_words_file: swap_words_file != 'none'),
-    ).filter_if(
-        (lambda embed_method: embed_method != 'fasttext'),
-        (lambda fasttext_method: fasttext_method == 'none'),
-    ).filter_if(
-        (lambda embedding_transform: embedding_transform != 'bolukbasi'),
-        (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
-                bolukbasi_gendered_words_file, bolukbasi_equalize_pairs_file:
-            all(
-                param == 'none' for param in [
-                    bolukbasi_subspace_words_file,
-                    bolukbasi_subspace_aggregation,
-                    bolukbasi_gendered_words_file,
-                    bolukbasi_equalize_pairs_file,
-                ]
-            )
-        ),
-    ).filter_if(
-        (lambda embedding_transform: embedding_transform == 'bolukbasi'),
-        (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
-                bolukbasi_gendered_words_file, bolukbasi_equalize_pairs_file:
-            not any(
-                param == 'none' for param in [
-                    bolukbasi_subspace_words_file,
-                    bolukbasi_subspace_aggregation,
-                    bolukbasi_gendered_words_file,
-                    bolukbasi_equalize_pairs_file,
-                ]
-            )
-        ),
-    )
-
+CORPUS_FILES = [
+    str(CORPORA_PATH.joinpath('wikipedia-1')),
+    str(CORPORA_PATH.joinpath('alice-in-wonderland')),
+]
+GENDER_PAIRS_FILES = [
+    str(DATA_PATH.joinpath('gender-pairs', 'all')),
+]
+GENDERED_WORDS_FILES = [
+    str(DATA_PATH.joinpath('gendered-words', 'gender_specific_seed')),
+]
+EQUALIZE_PAIRS_FILES = [
+    str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-equalize')),
+]
+EVALUATION_PAIRS_FILES = [
+    str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-definitional')),
+]
+BIASED_WORDS_FILES = [
+    str(DATA_PATH.joinpath('biased-words', 'adjectives')),
+    str(DATA_PATH.joinpath('biased-words', 'occupations')),
+]
+PSPACE = PermutationSpace(
+    [
+        'corpus_file',
+        'corpus_transform',
+        'swap_words_file',
+        'embed_method',
+        'fasttext_method',
+        'embedding_transform',
+        'bolukbasi_subspace_words_file',
+        'bolukbasi_subspace_aggregation',
+        'bolukbasi_gendered_words_file',
+        'bolukbasi_equalize_pairs_file',
+        'subspace_words_file',
+        'subspace_aggregation',
+        'biased_words_file',
+    ],
+    # corpus parameters
+    corpus_file=CORPUS_FILES,
+    # corpus transform parameters
+    corpus_transform=['none', 'replace', 'duplicate', 'random'],
+    swap_words_file=['none', *GENDER_PAIRS_FILES],
+    # embedding parameters
+    embed_method=['fasttext'],
+    fasttext_method=['none', 'cbow', 'skipgram'],
+    # embedding transform parameters
+    embedding_transform=['none', 'bolukbasi'],
+    bolukbasi_subspace_words_file=['none', *GENDER_PAIRS_FILES],
+    bolukbasi_subspace_aggregation=['none', 'mean', 'pca'],
+    bolukbasi_gendered_words_file=['none', *GENDERED_WORDS_FILES],
+    bolukbasi_equalize_pairs_file=['none', *EQUALIZE_PAIRS_FILES],
+    # bias evaluation parameters
+    subspace_words_file=EVALUATION_PAIRS_FILES,
+    subspace_aggregation=['mean', 'pca'],
+    biased_words_file=BIASED_WORDS_FILES,
+    bias_strictness=0.8,
+).filter(
+    lambda corpus_transform, embedding_transform:
+        corpus_transform == 'none' or embedding_transform == 'none'
+).filter_if(
+    (lambda corpus_transform: corpus_transform == 'none'),
+    (lambda swap_words_file: swap_words_file == 'none'),
+).filter_if(
+    (lambda corpus_transform: corpus_transform != 'none'),
+    (lambda swap_words_file: swap_words_file != 'none'),
+).filter_if(
+    (lambda embed_method: embed_method != 'fasttext'),
+    (lambda fasttext_method: fasttext_method == 'none'),
+).filter_if(
+    (lambda embedding_transform: embedding_transform != 'bolukbasi'),
+    (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
+            bolukbasi_gendered_words_file, bolukbasi_equalize_pairs_file:
+        all(
+            param == 'none' for param in [
+                bolukbasi_subspace_words_file,
+                bolukbasi_subspace_aggregation,
+                bolukbasi_gendered_words_file,
+                bolukbasi_equalize_pairs_file,
+            ]
+        )
+    ),
+).filter_if(
+    (lambda embedding_transform: embedding_transform == 'bolukbasi'),
+    (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
+            bolukbasi_gendered_words_file, bolukbasi_equalize_pairs_file:
+        not any(
+            param == 'none' for param in [
+                bolukbasi_subspace_words_file,
+                bolukbasi_subspace_aggregation,
+                bolukbasi_gendered_words_file,
+                bolukbasi_equalize_pairs_file,
+            ]
+        )
+    ),
+).filter(
     # FIXME fix multiple parameters for testing purposes
-    pspace.filter(
-        lambda corpus_file, corpus_transform, embed_method, fasttext_method,
-                bolukbasi_subspace_aggregation, subspace_aggregation:
-            corpus_file == corpus_files[0]
-            and corpus_transform == 'replace'
-            and embed_method == 'fasttext'
-            and fasttext_method == 'cbow'
-            and bolukbasi_subspace_aggregation != 'pca'
-            and subspace_aggregation == 'pca'
-    )
-
-    print(f'running for {len(pspace)} parameter sets')
-    for params in pspace:
-        print(params.index_)
-        run_experiment(params)
+    lambda corpus_file, corpus_transform, embed_method, fasttext_method,
+            bolukbasi_subspace_aggregation, subspace_aggregation:
+        corpus_file == corpus_files[0]
+        and corpus_transform == 'replace'
+        and embed_method == 'fasttext'
+        and fasttext_method == 'cbow'
+        and bolukbasi_subspace_aggregation != 'pca'
+        and subspace_aggregation == 'pca'
+)
 
 
 if __name__ == '__main__':
-    main()
+    sequencerun(run_experiment, 'PSPACE')
