@@ -209,7 +209,7 @@ class WordEmbedding:
         return len(self.keyed_vectors.vocab)
 
     def __contains__(self, word):
-        return word in self.keyed_vectors
+        return word in self.keyed_vectors.vocab
 
     def __setitem__(self, word, vector):
         if not isinstance(word, str):
@@ -219,6 +219,8 @@ class WordEmbedding:
     def __getitem__(self, word):
         if not isinstance(word, str):
             raise ValueError(f'word must be a str but got {str}')
+        if word not in self:
+            raise KeyError(f'word "{word}" is not in the embedding')
         return self.keyed_vectors[word]
 
     def normalize(self):
