@@ -568,7 +568,7 @@ def define_mean_gender_direction(embedding, gender_pairs):
         gender_pairs (Iterable[Tuple[str, str]]): A list of male-female word pairs.
 
     Returns:
-         numpy.ndarray: a male->female vector.
+        numpy.ndarray: A female->male vector.
 
     Raises:
         ValueError: If none of the gender pairs are in the embedding.
@@ -577,7 +577,7 @@ def define_mean_gender_direction(embedding, gender_pairs):
     for male_word, female_word in gender_pairs:
         if male_word not in embedding or female_word not in embedding:
             continue
-        diff_vector = embedding[female_word] - embedding[male_word]
+        diff_vector = embedding[male_word] - embedding[female_word]
         diff_vectors.append(normalize(diff_vector))
     if not diff_vectors:
         raise ValueError('embedding does not contain any gender pairs.')
@@ -593,7 +593,7 @@ def define_pca_gender_direction(embedding, gender_pairs):
         gender_pairs (Iterable[Tuple[str, str]]): A list of male-female word pairs.
 
     Returns:
-        numpy.ndarray: A male->female vector.
+        numpy.ndarray: A female->male vector.
 
     Raises:
         ValueError: If none of the gender pairs are in the embedding.
@@ -623,7 +623,7 @@ def define_gender_direction(embedding, params):
         params (NameSpace): The experiment parameters.
 
     Returns:
-        numpy.ndarray: A male->female vector.
+        numpy.ndarray: A female->male vector.
 
     Raises:
         ValueError: If the params contain an unknown subspace_aggregation.
