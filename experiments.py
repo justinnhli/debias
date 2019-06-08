@@ -577,8 +577,7 @@ def define_mean_gender_direction(embedding, gender_pairs):
     for male_word, female_word in gender_pairs:
         if male_word not in embedding or female_word not in embedding:
             continue
-        diff_vector = embedding[male_word] - embedding[female_word]
-        diff_vectors.append(normalize(diff_vector))
+        diff_vectors.append(embedding[male_word] - embedding[female_word])
     if not diff_vectors:
         raise ValueError('embedding does not contain any gender pairs.')
     gender_direction = normalize(np.mean(np.array(diff_vectors), axis=0))
@@ -602,15 +601,15 @@ def define_pca_gender_direction(embedding, gender_pairs):
     for male_word, female_word in gender_pairs:
         if male_word not in embedding or female_word not in embedding:
             continue
-        fem_vec_norm = normalize(embedding[female_word])
-        male_vec_norm = normalize(embedding[male_word])
-        center = (fem_vec_norm + male_vec_norm) / 2
-        matrix.append(fem_vec_norm - center)
-        matrix.append(male_vec_norm - center)
+        male_vector = embedding[male_word]
+        female_vector = embedding[female_word]
+        center = (male_vector + female_vector) / 2
+        matrix.append(male_vector - center)
+        matrix.append(female_vector - center)
     if not matrix:
         raise ValueError('embedding does not contain any gender pairs.')
     matrix = np.array(matrix)
-    pca = PCA()
+    pca = PCA(n_components=10)
     pca.fit(matrix)
     gender_direction = normalize(pca.components_[0])
     return align_gender_direction(embedding, gender_direction, gender_pairs)
@@ -700,7 +699,7 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
     # convert flat array to array in higher dimension
     gender_direction = define_pca_gender_direction(embedding, gender_pairs)
     gender_direction = gender_direction[np.newaxis, :]
-    # debias the entire space first, then add back the origin gendered words
+    # debias the entire space first
     vectors = embedding.values()
     scale = (vectors @ gender_direction.T) / (gender_direction @ gender_direction.T)
     extrusion = np.repeat(gender_direction, [vectors.shape[0]], axis=0)
@@ -759,6 +758,7 @@ def debias_embedding(embedding, params):
         out_path_parts = [
             embedding.source.name,
             gender_pairs_path.stem,
+            params.bolukbasi_subspace_aggregation,
         ]
         gender_pairs = read_gender_pairs(gender_pairs_path)
         if params.bolukbasi_gendered_words_file == 'none':
@@ -802,8 +802,8 @@ def measure_bias(embedding, params):
             continue
         word_vector = embedding[word]
         direction_vector = normalize(direction)
-        raw_bias = abs(np.dot(word_vector, direction_vector))
-        word_biases.append(raw_bias**params.bias_strictness)
+        raw_bias = np.dot(word_vector, direction_vector)
+        word_biases.append(abs(raw_bias)**params.bias_strictness)
     return mean(word_biases)
 
 
@@ -886,7 +886,7 @@ PSPACE = PermutationSpace(
     # embedding transform parameters
     embedding_transform=['none', 'bolukbasi'],
     bolukbasi_subspace_words_file=['none', *GENDER_PAIRS_FILES],
-    bolukbasi_subspace_aggregation=['none', 'mean', 'pca'],
+    bolukbasi_subspace_aggregation=['none', 'pca'],
     bolukbasi_gendered_words_file=['none', *GENDERED_WORDS_FILES],
     bolukbasi_equalize_pairs_file=['none', *EQUALIZE_PAIRS_FILES],
     # bias evaluation parameters
