@@ -733,9 +733,8 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words=None, equalize_pair
     # save the new embedding to disk
     new_embedding = WordEmbedding.from_vectors(embedding.keys(), new_vectors)
     new_embedding.source = out_path
-    print('before')
-    new_embedding.save()
-    print('after')
+    with redirect_stderr(open(os.devnull)):
+        new_embedding.save()
     return new_embedding
 
 
