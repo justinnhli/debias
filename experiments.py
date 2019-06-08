@@ -657,7 +657,7 @@ def define_gender_direction(embedding, params):
 # embedding transforms
 
 
-def debias_bolukbasi(embedding, gender_pairs, gendered_words=None, equalize_pairs=None, out_path=None):
+def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, out_path=None):
     """Debiasing a word embedding by zeroing the gender vector.
 
     Adapted from https://github.com/tolga-b/debiaswe/blob/master/debiaswe/debias.py#L19
@@ -679,10 +679,6 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words=None, equalize_pair
     """
     if out_path.exists():
         return WordEmbedding.load_word2vec_file(out_path)
-    if gendered_words is None:
-        gendered_words = set()
-    if equalize_pairs is None:
-        equalize_pairs = []
     # expand the equalized pairs with their variants
     equalized_pair_variants = []
     for male_root_word, female_root_word in equalize_pairs:
@@ -761,14 +757,14 @@ def debias_embedding(embedding, params):
         ]
         gender_pairs = read_gender_pairs(gender_pairs_path)
         if params.bolukbasi_gendered_words_file == 'none':
-            gendered_words = None
+            gendered_words = set()
             out_path_parts.append('none')
         else:
             gendered_words_path = Path(params.bolukbasi_gendered_words_file)
             gendered_words = read_word_list(gendered_words_path)
             out_path_parts.append(gendered_words_path.stem)
         if params.bolukbasi_equalize_pairs_file == 'none':
-            equalize_pairs = None
+            equalize_pairs = []
             out_path_parts.append('none')
         else:
             equalize_pairs_path = Path(params.bolukbasi_equalize_pairs_file)
