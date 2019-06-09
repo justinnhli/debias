@@ -796,9 +796,8 @@ def debias_embedding(embedding, params):
 
 # bias measurements
 
-
-def measure_bias(embedding, params):
-    """Measure the bias of a word embedding.
+def measure_projection_bias(embedding, params):
+    """Measure the bias by projecting onto the gender direction.
 
     Parameters:
         embedding (WordEmbedding): A word embedding.
@@ -818,6 +817,41 @@ def measure_bias(embedding, params):
         raw_bias = np.dot(word_vector, direction_vector)
         word_biases.append(abs(raw_bias)**params.bias_strictness)
     return mean(word_biases)
+
+
+def measure_analogy_bias(embedding, params):
+    """Measure the bias by projecting onto the gender direction.
+
+    Parameters:
+        embedding (WordEmbedding): A word embedding.
+        params (NameSpace): The experiment parameters.
+
+    Returns:
+        float: The measured bias.
+    """
+    gender_pairs = read_gender_pairs(Path(params.subspace_words_file))
+    biased_words = read_word_list(Path(params.biased_words_file))
+    biased_words = [word for word in biased_words if word in embedding]
+    distances = []
+    for male_word, female_word in gender_pairs:
+        if male_word not in embedding or female_word not in embedding:
+            continue
+        for word in biased_words:
+            diff_vector = embedding[male_word] - embedding[female_word]
+            # this gives List[Tuple[str, float]]
+            targets = embedding.words_near_vector(embedding[word] + diff_vector)
+            target = max(targets, key=(lambda pair: pair[1]))[0]
+            distances.append(embedding.distance(word, target))
+    return mean(distances)
+
+
+def measure_bias(embedding, params):
+    if params.bias_metric == 'projection':
+        return measure_projection_bias(embedding, params)
+    elif params.bias_metric == 'analogy':
+        return measure_analogy_bias(embedding, params)
+    else:
+        raise ValueError(f'unknown embedding transform {params.bias_metric}')
 
 
 # main
@@ -884,6 +918,7 @@ PSPACE = PermutationSpace(
         'bolukbasi_subspace_aggregation',
         'bolukbasi_gendered_words_file',
         'bolukbasi_equalize_pairs_file',
+        'bias_metric',
         'subspace_words_file',
         'subspace_aggregation',
         'biased_words_file',
@@ -903,6 +938,7 @@ PSPACE = PermutationSpace(
     bolukbasi_gendered_words_file=['none', *GENDERED_WORDS_FILES],
     bolukbasi_equalize_pairs_file=['none', *EQUALIZE_PAIRS_FILES],
     # bias evaluation parameters
+    bias_metric=['projection', 'analogy'],
     subspace_words_file=EVALUATION_PAIRS_FILES,
     subspace_aggregation=['mean', 'pca'],
     biased_words_file=BIASED_WORDS_FILES,
