@@ -525,12 +525,13 @@ def debias_corpus(corpus, params):
 
 
 @lru_cache(maxsize=16)
-def load_fasttext_embedding(corpus, method):
+def load_fasttext_embedding(corpus, method, out_path=None):
     """Load a FastText word embedding.
 
     Parameters:
         corpus (Path): The path of the corpus file.
         method (str): The model type. Must be either 'cbow' or 'skipgram'.
+        out_path (Path): The output path of the model. Optional.
 
     Returns:
         WordEmbedding: The trained FastText model.
@@ -541,14 +542,19 @@ def load_fasttext_embedding(corpus, method):
     if method not in {'cbow', 'skipgram'}:
         raise ValueError(f'model_type must be "cbow" or "skipgram" but got "{method}"')
     file_name = corpus.name + f'.fasttext.{method}'
-    binary_file_path = MODELS_PATH.joinpath(file_name + '.bin')
-    if not binary_file_path.exists():
+    if out_path is None:
+        out_path = MODELS_PATH.joinpath(file_name)
+    elif out_path.suffix == '.bin':
+        out_path = out_path.parent.joinpath(out_path.stem)
+    binary_path = out_path.parent.joinpath(out_path.name + '.bin')
+    if not binary_path.exists():
         subprocess.run([
             'fasttext', method,
             '-input', str(corpus),
-            '-output', str(MODELS_PATH.joinpath(file_name)),
+            '-output', str(out_path),
         ])
-    return WordEmbedding.load_fasttext_file(binary_file_path)
+    binary_path = out_path.parent.joinpath(out_path.name + '.bin')
+    return WordEmbedding.load_fasttext_file(binary_path)
 
 
 def embed(corpus, params):
