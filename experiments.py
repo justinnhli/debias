@@ -929,7 +929,7 @@ PSPACE = PermutationSpace(
     # FIXME fix multiple parameters for testing purposes
     lambda corpus_file, corpus_transform, embed_method, fasttext_method,
             bolukbasi_subspace_aggregation, subspace_aggregation:
-        corpus_file == corpus_files[0]
+        corpus_file == CORPUS_FILES[0]
         and corpus_transform == 'replace'
         and embed_method == 'fasttext'
         and fasttext_method == 'cbow'
