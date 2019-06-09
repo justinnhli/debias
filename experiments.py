@@ -224,22 +224,6 @@ class WordEmbedding:
         new_vectors /= np.linalg.norm(new_vectors, axis=1)[:, np.newaxis]
         self.keyed_vectors.vectors = new_vectors
 
-    def keys(self):
-        """Get the words in the word embedding.
-
-        Returns:
-            List[str]: The words in the word embedding.
-        """
-        return self.keyed_vectors.index2entity
-
-    def values(self):
-        """Get the vectors in the word embedding.
-
-        Returns:
-            numpy.ndarray: The vectors in the word embedding.
-        """
-        return self.keyed_vectors.vectors
-
     def items(self):
         """Get the words and vectors in the word embedding.
 
@@ -247,7 +231,7 @@ class WordEmbedding:
             Tuple[str, numpy.ndarray]: The words and vectors in the word
                 embedding.
         """
-        for word in self.keys():
+        for word in self.words:
             yield word, self[word]
 
     def save(self, path=None):
@@ -686,14 +670,14 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
     # pre-calculate the indices of the gendered and equalization words
     indices = {}
     equalize_words = set(chain(*equalized_pair_variants))
-    for index, word in enumerate(embedding.keys()):
+    for index, word in enumerate(embedding.words):
         if word in gendered_words or word in equalize_words:
             indices[word] = index
     # convert flat array to array in higher dimension
     gender_direction = define_pca_gender_direction(embedding, gender_pairs)
     gender_direction = gender_direction[np.newaxis, :]
     # debias the entire space first
-    vectors = embedding.values()
+    vectors = embedding.vectors
     scale = (vectors @ gender_direction.T) / (gender_direction @ gender_direction.T)
     extrusion = np.repeat(gender_direction, [vectors.shape[0]], axis=0)
     projection = scale * extrusion
@@ -724,7 +708,7 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
     new_vectors = np.array(new_vectors, dtype='float32')
     new_vectors /= np.linalg.norm(new_vectors, axis=1)[:, np.newaxis]
     # save the new embedding to disk
-    new_embedding = WordEmbedding.from_vectors(embedding.keys(), new_vectors)
+    new_embedding = WordEmbedding.from_vectors(embedding.words, new_vectors)
     new_embedding.source = out_path
     with redirect_stderr(open(os.devnull)):
         new_embedding.save()
