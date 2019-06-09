@@ -9,12 +9,11 @@ from random import Random
 from statistics import mean
 
 import numpy as np
-from sklearn.decomposition import PCA
+from clusterun import sequencerun
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import WordEmbeddingsKeyedVectors, Word2VecKeyedVectors
 from permspace import PermutationSpace
-
-from clusterun import sequencerun
+from sklearn.decomposition import PCA
 
 from constants import CORPORA_PATH, MODELS_PATH, DATA_PATH, RESULTS_PATH
 
