@@ -893,10 +893,11 @@ def run_experiment(params):
         params.bolukbasi_subspace_aggregation,
         Path(params.bolukbasi_gendered_words_file).name,
         Path(params.bolukbasi_equalize_pairs_file).name,
+        params.bias_metric,
         Path(params.subspace_words_file).name,
         params.subspace_aggregation,
         Path(params.biased_words_file).name,
-        bias
+        bias,
     ]))
 
 
