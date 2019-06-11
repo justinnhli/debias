@@ -906,7 +906,8 @@ CORPUS_FILES = [
     str(CORPORA_PATH.joinpath('alice-in-wonderland')),
 ]
 GENDER_PAIRS_FILES = [
-    str(DATA_PATH.joinpath('gender-pairs', 'all')),
+    str(DATA_PATH.joinpath('gender-pairs', 'pronouns')),
+    str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-definitional')),
 ]
 GENDERED_WORDS_FILES = [
     str(DATA_PATH.joinpath('gendered-words', 'gender_specific_seed')),
