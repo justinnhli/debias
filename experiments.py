@@ -425,17 +425,19 @@ def replace_swap_words(word_groups, *strings):
         yield ' '.join(result)
 
 
-def create_duplicated_swapped_corpus(corpus, word_pairs):
+def create_duplicated_swapped_corpus(corpus, word_pairs, out_path=None):
     """Create a double-length word-swapped corpus.
 
     Parameters:
         corpus (Path): The path of the input corpus file.
         word_pairs (Iterable[Tuple[str, str]]): A collection of word pairs to swap.
+        out_path (Path): The path of the resulting corpus file. Optional.
 
     Returns:
         Path: The path of the resulting corpus file.
     """
-    out_path = corpus.parent.joinpath(corpus.name + '.duplicate-swapped')
+    if out_path is None:
+        out_path = corpus.parent.joinpath(corpus.name + '.duplicate')
     if out_path.exists():
         return out_path
     with out_path.open('w') as out_fd:
@@ -451,17 +453,19 @@ def create_duplicated_swapped_corpus(corpus, word_pairs):
     return out_path
 
 
-def create_randomized_swapped_corpus(corpus, word_groups):
+def create_randomized_swapped_corpus(corpus, word_groups, out_path=None):
     """Create a randomized, word-swapped corpus.
 
     Parameters:
         corpus (Path): The path of the input corpus file.
         word_groups (Iterable[Iterable[str, str]]): A collection of word groups to swap.
+        out_path (Path): The path of the resulting corpus file. Optional.
 
     Returns:
         Path: The path of the resulting corpus file.
     """
-    out_path = corpus.parent.joinpath(corpus.name + '.random-swapped')
+    if out_path is None:
+        out_path = corpus.parent.joinpath(corpus.name + '.random')
     if out_path.exists():
         return out_path
     with corpus.open() as in_fd:
@@ -473,17 +477,19 @@ def create_randomized_swapped_corpus(corpus, word_groups):
     return out_path
 
 
-def create_replaced_swapped_corpus(corpus, word_groups):
+def create_replaced_swapped_corpus(corpus, word_groups, out_path=None):
     """Create a randomized, word-swapped corpus.
 
     Parameters:
         corpus (Path): The path of the input corpus file.
         word_groups (Iterable[Iterable[str, str]]): A collection of word groups to swap.
+        out_path (Path): The path of the resulting corpus file. Optional.
 
     Returns:
         Path: The path of the resulting corpus file.
     """
-    out_path = corpus.parent.joinpath(corpus.name + '.replace-swapped')
+    if out_path is None:
+        out_path = corpus.parent.joinpath(corpus.name + '.replace')
     if out_path.exists():
         return out_path
     with corpus.open() as in_fd:
@@ -510,13 +516,15 @@ def debias_corpus(corpus, params):
     """
     if params.corpus_transform == 'none':
         return corpus
-    word_groups = read_word_groups(Path(params.swap_words_file).expanduser().resolve())
+    words_file = Path(params.swap_words_file)
+    word_groups = read_word_groups(words_file)
+    out_path = corpus.parent.joinpath(corpus.name + f'.{params.corpus_transform}.{words_file.name}')
     if params.corpus_transform == 'duplicate':
-        return create_duplicated_swapped_corpus(corpus, word_groups)
+        return create_duplicated_swapped_corpus(corpus, word_groups, out_path)
     elif params.corpus_transform == 'random':
-        return create_randomized_swapped_corpus(corpus, word_groups)
+        return create_randomized_swapped_corpus(corpus, word_groups, out_path)
     elif params.corpus_transform == 'replace':
-        return create_replaced_swapped_corpus(corpus, word_groups)
+        return create_replaced_swapped_corpus(corpus, word_groups, out_path)
     else:
         raise ValueError(f'unknown corpus transform {params.corpus_transform}')
 
