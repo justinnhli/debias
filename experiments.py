@@ -249,6 +249,42 @@ class WordEmbedding:
             raise ValueError('neither path nor WordEmbedding.source is set')
         self.keyed_vectors.save_word2vec_format(str(path))
 
+    def words_near_vector(self, vector, k=10):
+        """Find words near a given vector.
+
+        Parameters:
+            vector (numpy.ndarray): The word vector.
+            k (int): The number of words to return. Defaults to 10.
+
+        Returns:
+            List[Tuple[str, float]]: A list of word and their distances
+        """
+        return self.keyed_vectors.similar_by_vector(vector, topn=k)
+
+    def words_near_word(self, word, k=10):
+        """Find words near a given word.
+
+        Parameters:
+            word (str): The word.
+            k (int): The number of words to return. Defaults to 10.
+
+        Returns:
+            List[Tuple[str, float]]: A list of word and their distances
+        """
+        return self.words_near_vector(self[word], k=k)
+
+    def distance(self, word1, word2):
+        """Get the distance between two words.
+
+        Parameters:
+            word1 (str): The first word.
+            word2 (str): The second word.
+
+        Returns:
+            float: The distance between the words.
+        """
+        return self.keyed_vectors.distance(word1, word2)
+
     @staticmethod
     def load_fasttext_file(path):
         """Load from a FastText .bin file.
