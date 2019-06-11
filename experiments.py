@@ -984,14 +984,12 @@ PSPACE = PermutationSpace(
     ),
 ).filter_if(
     (lambda embedding_transform: embedding_transform == 'bolukbasi'),
-    (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
-            bolukbasi_gendered_words_file, bolukbasi_equalize_pairs_file:
+    (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation, bolukbasi_gendered_words_file:
         not any(
             param == 'none' for param in [
                 bolukbasi_subspace_words_file,
                 bolukbasi_subspace_aggregation,
                 bolukbasi_gendered_words_file,
-                bolukbasi_equalize_pairs_file,
             ]
         )
     ),
