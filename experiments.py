@@ -87,43 +87,67 @@ def read_word_groups(path):
 # vector utilities
 
 
-def normalize(vec):
-    """Normalize a vec.
+def normalize(vectors):
+    """Normalize vectors.
 
     Parameters:
-        vec (numpy.ndarray): The vec.
-
+        vectors (numpy.ndarray): The vectors, as rows.
 
     Returns:
         numpy.ndarray: The normalized vec.
     """
-    return vec / np.linalg.norm(vec, ord=1)
+    flat = (len(vectors.shape) == 1)
+    if flat:
+        vectors = vectors[np.newaxis, :]
+    result = vectors / np.linalg.norm(vectors, axis=1)[:, np.newaxis]
+    if flat:
+        return result[0]
+    else:
+        return result
 
 
-def project(vec1, vec2):
-    """Project vec1 on to vec2.
+def project(vectors, bases, change_coords=False):
+    """Project the vectors on to the subspace formed by the bases.
 
-    Parametesr:
-        vec1 (numpy.ndarray): The vector to project.
-        vec2 (numpy.ndarray): The vector to project on to.
+    Parameters:
+        vectors (numpy.ndarray): The vectors to project, as rows.
+        bases (numpy.ndarray): The bases to project on to.
+        change_coords (bool): If True, the result will be in the coordinate
+            system defined by the bases. Defaults to False.
 
     Returns:
         numpy.ndarray: The projection.
     """
-    return vec2 * vec1.dot(vec2) / vec2.dot(vec2)
+    flat = (len(vectors.shape) == 1)
+    if flat:
+        vectors = vectors[np.newaxis, :]
+    if len(bases.shape) == 1:
+        bases = bases[np.newaxis, :]
+    try:
+        result = np.linalg.inv(bases @ bases.T) @ bases @ vectors.T
+    except ValueError:
+        breakpoint()
+    if not change_coords:
+        result = bases.T @ result
+    result = result.T
+    if flat:
+        return result[0]
+    else:
+        return result
 
 
-def reject(vec1, vec2):
-    """Reject vec1 from vec2.
 
-    Parametesr:
-        vec1 (numpy.ndarray): The vector to reject.
-        vec2 (numpy.ndarray): The vector to reject from.
+def reject(vectors, bases):
+    """Reject the vectors from the subspace formed by the bases.
+
+    Parameters:
+        vectors (numpy.ndarray): The vector to reject.
+        bases (numpy.ndarray): The vector to reject from.
 
     Returns:
         numpy.ndarray: The rejection.
     """
-    return vec1 - project(vec1, vec2)
+    return vectors - project(vectors, bases)
 
 
 # classes
