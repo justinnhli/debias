@@ -150,6 +150,20 @@ def reject(vectors, bases):
     return vectors - project(vectors, bases)
 
 
+def recenter(vectors):
+    """Redefine vectors as coming from their centroid.
+
+    Parameters:
+        vectors (numpy.ndarray): The vectors, as rows
+
+    Returns:
+        numpy.ndarray: The new vectors.
+    """
+    centroid = np.mean(vectors, axis=0)
+    extrusion = np.repeat(centroid[np.newaxis, :], [vectors.shape[0]], axis=0)
+    return vectors - extrusion
+
+
 # classes
 
 
@@ -646,11 +660,9 @@ def define_pca_gender_direction(embedding, gender_pairs):
     for male_word, female_word in gender_pairs:
         if male_word not in embedding or female_word not in embedding:
             continue
-        male_vector = embedding[male_word]
-        female_vector = embedding[female_word]
-        center = (male_vector + female_vector) / 2
-        matrix.append(male_vector - center)
-        matrix.append(female_vector - center)
+        matrix.extend(recenter(
+            np.array([embedding[male_word], embedding[female_word]])
+        ))
     if not matrix:
         raise ValueError('embedding does not contain any gender pairs.')
     matrix = np.array(matrix)
