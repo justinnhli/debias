@@ -1047,16 +1047,16 @@ CORPUS_FILES = [
 ]
 GENDER_PAIRS_FILES = [
     str(DATA_PATH.joinpath('gender-pairs', 'pronouns')),
-    str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-definitional')),
+    str(DATA_PATH.joinpath('gender-pairs', 'definitional')),
 ]
 GENDERED_WORDS_FILES = [
     str(DATA_PATH.joinpath('gendered-words', 'gender_specific_seed')),
 ]
 EQUALIZE_PAIRS_FILES = [
-    str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-equalize')),
+    str(DATA_PATH.joinpath('gender-pairs', 'equalize')),
 ]
 EVALUATION_PAIRS_FILES = [
-    str(DATA_PATH.joinpath('gender-pairs', 'bolukbasi-definitional')),
+    str(DATA_PATH.joinpath('gender-pairs', 'definitional')),
 ]
 BIASED_WORDS_FILES = [
     str(DATA_PATH.joinpath('biased-words', 'adjectives')),
