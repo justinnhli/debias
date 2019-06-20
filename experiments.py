@@ -920,6 +920,11 @@ def measure_bias(embedding, params):
 # main
 
 
+def xor(a, b):
+    # pylint: disable = invalid-name
+    return (a and not b) or (b and not a)
+
+
 def run_experiment(params):
     """Run a word embedding bias experiment.
 
@@ -1011,15 +1016,12 @@ PSPACE = PermutationSpace(
 ).filter(
     lambda corpus_transform, embedding_transform:
         corpus_transform == 'none' or embedding_transform == 'none'
-).filter_if(
-    (lambda corpus_transform: corpus_transform == 'none'),
-    (lambda swap_words_file: swap_words_file == 'none'),
-).filter_if(
-    (lambda corpus_transform: corpus_transform != 'none'),
-    (lambda swap_words_file: swap_words_file != 'none'),
-).filter_if(
-    (lambda embed_method: embed_method != 'fasttext'),
-    (lambda fasttext_method: fasttext_method == 'none'),
+).filter(
+    lambda corpus_transform, swap_words_file:
+        xor(corpus_transform != 'none', swap_words_file == 'none')
+).filter(
+    lambda embed_method, fasttext_method:
+        xor(embed_method == 'fasttext', fasttext_method == 'none')
 ).filter_if(
     (lambda embedding_transform: embedding_transform != 'bolukbasi'),
     (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
