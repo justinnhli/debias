@@ -10,8 +10,10 @@ from statistics import mean
 
 import numpy as np
 from clusterun import sequencerun
+from gensim.models import Word2Vec
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import WordEmbeddingsKeyedVectors, Word2VecKeyedVectors
+from gensim.models.base_any2vec import BaseWordEmbeddingsModel
 from permspace import PermutationSpace
 from sklearn.decomposition import PCA
 
@@ -205,6 +207,10 @@ class WordEmbedding:
             if not hasattr(gensim_obj, 'save_word2vec_format'):
                 raise ValueError(f'gensim_obj {type(gensim_obj)} does not have attribute "save_word2vec_format"')
             self.keyed_vectors = gensim_obj
+        elif isinstance(gensim_obj, BaseWordEmbeddingsModel):
+            if not hasattr(gensim_obj, 'wv'):
+                raise ValueError(f'gensim_obj {type(gensim_obj)} does not have attribute "wv"')
+            self.keyed_vectors = gensim_obj.wv
         else:
             raise ValueError(f'unable to determine word vectors in gensim object {gensim_obj}')
         self.source = source
@@ -563,6 +569,25 @@ def debias_corpus(corpus, params):
 
 # word embeddings
 
+@lru_cache(maxsize=16)
+def load_word2vec_embedding(corpus, out_path=None):
+    """Load or create a word2vec word embedding.
+
+    Parameters:
+        corpus (Path): The path of the corpus file.
+        out_path (Path): The output path of the model. Optional.
+
+    Returns:
+        WordEmbedding: The trained word2vec model.
+    """
+    if out_path is None:
+        out_path = MODELS_PATH.joinpath(corpus.name + '.w2v')
+    if out_path.exists():
+        return WordEmbedding.load_word2vec_file(out_path)
+    model = Word2Vec(corpus_file=str(corpus), size=100, window=5, min_count=1, workers=4)
+    model.wv.save_word2vec_format(str(out_path))
+    return WordEmbedding(gensim_obj=model, source=out_path)
+
 
 @lru_cache(maxsize=16)
 def load_fasttext_embedding(corpus, method, out_path=None):
@@ -610,7 +635,9 @@ def embed(corpus, params):
     Raises:
         ValueError: If the params contain an unknown embed_method.
     """
-    if params.embed_method == 'fasttext':
+    if params.embed_method == 'word2vec':
+        return load_word2vec_embedding(corpus)
+    elif params.embed_method == 'fasttext':
         return load_fasttext_embedding(corpus, params.fasttext_method)
     else:
         raise ValueError(f'unknown embedding method {params.embed_method}')
@@ -967,7 +994,7 @@ PSPACE = PermutationSpace(
     corpus_transform=['none', 'replace', 'duplicate', 'random'],
     swap_words_file=['none', *GENDER_PAIRS_FILES],
     # embedding parameters
-    embed_method=['fasttext'],
+    embed_method=['word2vec', 'fasttext'],
     fasttext_method=['none', 'cbow', 'skipgram'],
     # embedding transform parameters
     embedding_transform=['none', 'bolukbasi'],
