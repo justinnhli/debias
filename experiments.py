@@ -1108,19 +1108,14 @@ PSPACE = PermutationSpace(
 ).filter(
     lambda embed_method, fasttext_method:
         xor(embed_method == 'fasttext', fasttext_method == 'none')
-).filter_if(
-    (lambda embedding_transform: embedding_transform != 'bolukbasi'),
-    (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
+).filter(
+    lambda embedding_transform,
+            bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation,
             bolukbasi_gendered_words_file, bolukbasi_equalize_pairs_file:
-        all(
-            param == 'none' for param in [
-                bolukbasi_subspace_words_file,
-                bolukbasi_subspace_aggregation,
-                bolukbasi_gendered_words_file,
-                bolukbasi_equalize_pairs_file,
-            ]
-        )
-    ),
+        xor(embedding_transform == 'bolukbasi', bolukbasi_subspace_words_file == 'none')
+        and xor(embedding_transform == 'bolukbasi', bolukbasi_subspace_aggregation == 'none')
+        and xor(embedding_transform == 'bolukbasi', bolukbasi_gendered_words_file == 'none')
+        and xor(embedding_transform == 'bolukbasi', bolukbasi_equalize_pairs_file == 'none')
 ).filter_if(
     (lambda embedding_transform: embedding_transform == 'bolukbasi'),
     (lambda bolukbasi_subspace_words_file, bolukbasi_subspace_aggregation, bolukbasi_gendered_words_file:
