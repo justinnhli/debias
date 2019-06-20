@@ -14,6 +14,7 @@ from gensim.models import Word2Vec
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import WordEmbeddingsKeyedVectors, Word2VecKeyedVectors
 from gensim.models.base_any2vec import BaseWordEmbeddingsModel
+from gensim.scripts.glove2word2vec import glove2word2vec
 from permspace import PermutationSpace
 from sklearn.decomposition import PCA
 
@@ -590,8 +591,91 @@ def load_word2vec_embedding(corpus, out_path=None):
 
 
 @lru_cache(maxsize=16)
+def load_glove_embedding(corpus, out_path=None):
+    """Load or create a GloVe word embedding.
+
+    Parameters:
+        corpus (Path): The path of the corpus file.
+        out_path (Path): The output path of the model. Optional.
+
+    Returns:
+        WordEmbedding: The trained GloVe model.
+
+    Raises:
+        ValueError: If GloVe cannot be found.
+    """
+    glove_path = Path(os.environ['HOME'], 'git', 'GloVe')
+    vocab_file_path = MODELS_PATH.joinpath(corpus.name + '.glove.vocab')
+    cooccur_file_path = MODELS_PATH.joinpath(corpus.name + '.glove.cooccur')
+    shuffle_file_path = MODELS_PATH.joinpath(corpus.name + '.glove.shuffle')
+    raw_model_file_path = MODELS_PATH.joinpath(corpus.name + '.glove.raw')
+    binary_file_path = MODELS_PATH.joinpath(corpus.name + '.glove.raw.bin')
+    text_file_path = MODELS_PATH.joinpath(corpus.name + '.glove.raw.txt')
+    if out_path is None:
+        model_file_path = MODELS_PATH.joinpath(corpus.name + '.glove')
+    else:
+        model_file_path = out_path
+    if not glove_path.exists():
+        raise ValueError(f'GloVe does not exist at {glove_path}')
+    if not vocab_file_path.exists():
+        with corpus.open('rb') as stdin:
+            with vocab_file_path.open('wb') as stdout:
+                subprocess.run(
+                    [
+                        str(glove_path.joinpath('build', 'vocab_count')),
+                        '-min-count', '5',
+                        '-verbose', '2',
+                    ],
+                    stdin=stdin,
+                    stdout=stdout,
+                )
+    if not cooccur_file_path.exists():
+        with corpus.open('rb') as stdin:
+            with cooccur_file_path.open('wb') as stdout:
+                subprocess.run(
+                    [
+                        str(glove_path.joinpath('build', 'cooccur')),
+                        '-memory', '4.0',
+                        '-vocab-file', str(vocab_file_path),
+                        '-verbose', '2',
+                        '-window-size', '15',
+                    ],
+                    stdin=stdin,
+                    stdout=stdout,
+                )
+    if not shuffle_file_path.exists():
+        with cooccur_file_path.open('rb') as stdin:
+            with shuffle_file_path.open('wb') as stdout:
+                subprocess.run(
+                    [
+                        str(glove_path.joinpath('build', 'shuffle')),
+                        '-memory', '4.0',
+                        '-verbose', '2',
+                    ],
+                    stdin=stdin,
+                    stdout=stdout,
+                )
+    if not binary_file_path.exists():
+        subprocess.run([
+            str(glove_path.joinpath('build', 'glove')),
+            '-save-file', str(raw_model_file_path),
+            '-threads', '8',
+            '-input-file', str(shuffle_file_path),
+            '-x-max', '10',
+            '-iter', '15',
+            '-vector-size', '50',
+            '-binary', '2',
+            '-vocab-file', str(vocab_file_path),
+            '-verbose', '2',
+        ])
+    if not model_file_path.exists():
+        glove2word2vec(str(text_file_path), str(model_file_path))
+    return WordEmbedding.load_word2vec_file(model_file_path)
+
+
+@lru_cache(maxsize=16)
 def load_fasttext_embedding(corpus, method, out_path=None):
-    """Load a FastText word embedding.
+    """Load or create a FastText word embedding.
 
     Parameters:
         corpus (Path): The path of the corpus file.
@@ -637,6 +721,8 @@ def embed(corpus, params):
     """
     if params.embed_method == 'word2vec':
         return load_word2vec_embedding(corpus)
+    elif params.embed_method == 'glove':
+        return load_glove_embedding(corpus)
     elif params.embed_method == 'fasttext':
         return load_fasttext_embedding(corpus, params.fasttext_method)
     else:
@@ -999,7 +1085,7 @@ PSPACE = PermutationSpace(
     corpus_transform=['none', 'replace', 'duplicate', 'random'],
     swap_words_file=['none', *GENDER_PAIRS_FILES],
     # embedding parameters
-    embed_method=['word2vec', 'fasttext'],
+    embed_method=['word2vec', 'glove', 'fasttext'],
     fasttext_method=['none', 'cbow', 'skipgram'],
     # embedding transform parameters
     embedding_transform=['none', 'bolukbasi'],
