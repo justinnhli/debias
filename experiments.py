@@ -263,6 +263,14 @@ class WordEmbedding:
             raise KeyError(f'word "{word}" is not in the embedding')
         return self.keyed_vectors[word]
 
+    def index(self, word):
+        """Get the index of the word in the internal representation
+
+        Returns:
+            int: The index of the word in the Word2VecKeyedVectors.
+        """
+        return self.keyed_vectors.vocab[word].index
+
     def items(self):
         """Get the words and vectors in the word embedding.
 
