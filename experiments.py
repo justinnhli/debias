@@ -3,7 +3,7 @@ import re
 import subprocess
 from contextlib import redirect_stderr
 from functools import lru_cache
-from itertools import chain, product
+from itertools import product
 from pathlib import Path
 from random import Random
 from statistics import mean
@@ -834,8 +834,72 @@ def define_gender_direction(embedding, params):
 # embedding transforms
 
 
-def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, out_path=None):
-    """Debiasing a word embedding by zeroing the gender vector.
+def _bolukbasi_debias(embedding, direction, exclusions=None):
+    if exclusions is None:
+        exclusions = set()
+    # debias the entire space first
+    new_vectors = reject(embedding.vectors, direction)
+    # put the exclusions back in
+    for word in exclusions:
+        new_vectors[embedding.index(word)] = embedding[word]
+    return normalize(new_vectors)
+
+
+def _bolukbasi_equalize(embedding, vectors, direction, word_pairs):
+    for male_root_word, female_root_word in word_pairs:
+        variants = [
+            (male_root_word.lower(), female_root_word.lower()),
+            (male_root_word.title(), female_root_word.title()),
+            (male_root_word.upper(), female_root_word.upper()),
+        ]
+        for (male_word, female_word) in variants:
+            if male_word not in embedding or female_word not in embedding:
+                continue
+            male_index = embedding.index(male_word)
+            female_index = embedding.index(female_word)
+            male_vector = vectors[male_index]
+            female_vector = vectors[female_index]
+            mean_vector = (male_vector + female_vector) / 2
+            gender_component = project(mean_vector, direction)
+            non_gender_component = mean_vector - gender_component
+            if (male_vector - female_vector).dot(gender_component) < 0:
+                gender_component = -gender_component
+            vectors[male_index] = gender_component + non_gender_component
+            vectors[female_index] = -gender_component + non_gender_component
+    return normalize(vectors)
+
+
+def debias_bolukbasi(embedding, direction, out_path, exclusions=None):
+    """Debiasing a word embedding by zeroing the vectors along a direction.
+
+    Parameters:
+        embedding (WordEmbedding): The word embedding to debias.
+        out_path (Path):
+            The path to save the new embedding to.
+        exclusions (Iterable[str]):
+            Words that should not be zeroed out.
+
+    Returns:
+        WordEmbedding: The debiased word embedding.
+    """
+    if out_path.exists():
+        return WordEmbedding.load_word2vec_file(out_path)
+    if len(direction) != embedding.vectors.shape[1]:
+        raise ValueError(
+            f'Direction has {len(direction)} dimensions '
+            f'but vectors have {embedding.vectors.shape[1]}.'
+        )
+    new_vectors = _bolukbasi_debias(embedding, direction, exclusions)
+    new_vectors = normalize(new_vectors)
+    new_embedding = WordEmbedding.from_vectors(embedding.words, new_vectors)
+    new_embedding.source = out_path
+    with redirect_stderr(open(os.devnull)):
+        new_embedding.save()
+    return new_embedding
+
+
+def debias_bolukbasi_original(embedding, gender_pairs, gendered_words, equalize_pairs, out_path):
+    """Debiasing a word embedding using Bolukbasi's original algorithm
 
     Adapted from https://github.com/tolga-b/debiaswe/blob/master/debiaswe/debias.py#L19
     Commit 10277b23e187ee4bd2b6872b507163ef4198686b on 2018-04-02
@@ -844,7 +908,7 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
         embedding (WordEmbedding): The word embedding to debias.
         gender_pairs (Iterable[Tuple[str, str]]):
             A list of male-female word pairs.
-        gendered_words (Set[str]):
+        gendered_words (Iterable[str]):
             A collection of words that should be gendered.
         equalize_pairs (Iterable[Tuple[str, str]]):
             Specific words that should be equidistant.
@@ -856,51 +920,11 @@ def debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, ou
     """
     if out_path.exists():
         return WordEmbedding.load_word2vec_file(out_path)
-    for male_word, female_word in gender_pairs:
-        gendered_words.add(male_word)
-        gendered_words.add(female_word)
-        equalize_pairs.append((male_word, female_word))
-    # expand the equalized pairs with their variants
-    equalized_pair_variants = []
-    for male_root_word, female_root_word in equalize_pairs:
-        equalized_pair_variants.extend([
-            (male_root_word.lower(), female_root_word.lower()),
-            (male_root_word.title(), female_root_word.title()),
-            (male_root_word.upper(), female_root_word.upper()),
-        ])
-    # pre-calculate the indices of the gendered and equalization words
-    indices = {}
-    equalize_words = set(chain(*equalized_pair_variants))
-    for index, word in enumerate(embedding.words):
-        if word in gendered_words or word in equalize_words:
-            indices[word] = index
-    # convert flat array to array in higher dimension
     gender_direction = define_pca_gender_direction(embedding, gender_pairs)
     gender_direction = gender_direction[np.newaxis, :]
-    # debias the entire space first
-    new_vectors = reject(embedding.vectors, gender_direction)
-    # put the gendered words back in
-    for word in gendered_words:
-        if word in indices:
-            new_vectors[indices[word]] = embedding[word]
+    new_vectors = _bolukbasi_debias(embedding, gender_direction, gendered_words)
+    new_vectors = _bolukbasi_equalize(embedding, new_vectors, gender_direction, equalize_pairs)
     new_vectors = normalize(new_vectors)
-    # equalize some words
-    for (male_word, female_word) in equalized_pair_variants:
-        if male_word not in indices or female_word not in indices:
-            continue
-        male_index = indices[male_word]
-        female_index = indices[female_word]
-        male_vector = new_vectors[male_index]
-        female_vector = new_vectors[female_index]
-        mean_vector = (male_vector + female_vector) / 2
-        gender_component = project(mean_vector, gender_direction)
-        non_gender_component = mean_vector - gender_component
-        if (male_vector - female_vector).dot(gender_component) < 0:
-            gender_component = -gender_component
-        new_vectors[male_index] = gender_component + non_gender_component
-        new_vectors[female_index] = -gender_component + non_gender_component
-    new_vectors = normalize(new_vectors)
-    # save the new embedding to disk
     new_embedding = WordEmbedding.from_vectors(embedding.words, new_vectors)
     new_embedding.source = out_path
     with redirect_stderr(open(os.devnull)):
@@ -946,7 +970,7 @@ def debias_embedding(embedding, params):
             equalize_pairs = read_gender_pairs(equalize_pairs_path)
             out_path_parts.append(equalize_pairs_path.stem)
         out_path = MODELS_PATH.joinpath('.'.join(out_path_parts))
-        return debias_bolukbasi(embedding, gender_pairs, gendered_words, equalize_pairs, out_path)
+        return debias_bolukbasi_original(embedding, gender_pairs, gendered_words, equalize_pairs, out_path)
     else:
         raise ValueError(f'unknown embedding transform {params.embedding_transform}')
 
