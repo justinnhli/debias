@@ -2,5 +2,8 @@ numpy
 scikit-learn
 gensim
 
+jupyter
+bokeh
+
 git+https://github.com/justinnhli/permspace.git
 git+https://github.com/justinnhli/clusterun.git
