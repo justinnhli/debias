@@ -304,7 +304,7 @@ class WordEmbedding:
             k (int): The number of words to return. Defaults to 10.
 
         Returns:
-            List[Tuple[str, float]]: A list of word and their distances
+            List[Tuple[str, float]]: A list of word and their cosine similarity.
         """
         return self.keyed_vectors.similar_by_vector(vector, topn=k)
 
@@ -316,7 +316,7 @@ class WordEmbedding:
             k (int): The number of words to return. Defaults to 10.
 
         Returns:
-            List[Tuple[str, float]]: A list of word and their distances
+            List[Tuple[str, float]]: A list of word and their cosine similarity.
         """
         return self.words_near_vector(self[word], k=k)
 
