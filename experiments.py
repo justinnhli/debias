@@ -807,27 +807,28 @@ def align_gender_direction(embedding, gender_direction, gender_pairs):
     return gender_direction
 
 
-def define_gender_direction(embedding, params):
+def define_gender_direction(embedding, subspace_aggregation, gender_pairs_file):
     """Calculate the gender direction.
 
     Parameters:
         embedding (WordEmbedding): A word embedding.
-        params (NameSpace): The experiment parameters.
+        subspace_aggregation (str): Method of determining the gender subspace.
+        gender_pairs_file (Path): Path to a list of gendered word pairs.
 
     Returns:
         numpy.ndarray: A female->male vector.
 
     Raises:
-        ValueError: If the params contain an unknown subspace_aggregation.
+        ValueError: If the subspace_aggregation is unknown.
     """
-    gender_pairs = read_gender_pairs(Path(params.subspace_words_file))
-    if params.subspace_aggregation == 'mean':
+    gender_pairs = read_gender_pairs(Path(gender_pairs_file))
+    if subspace_aggregation == 'mean':
         return define_mean_gender_direction(embedding, gender_pairs)
-    elif params.subspace_aggregation == 'pca':
+    elif subspace_aggregation == 'pca':
         return define_pca_gender_direction(embedding, gender_pairs)
     else:
         raise ValueError(
-            f'unknown gender subspace aggregation method {params.subspace_aggregation}'
+            f'unknown gender subspace aggregation method {subspace_aggregation}'
         )
 
 
@@ -870,11 +871,14 @@ def _bolukbasi_equalize(embedding, vectors, direction, word_pairs):
     return normalize(vectors)
 
 
-def debias_bolukbasi(embedding, direction, out_path, exclusions=None):
-    """Debiasing a word embedding by zeroing the vectors along a direction.
+def debias_bolukbasi(embedding, subspace, out_path, exclusions=None):
+    """Debiasing a word embedding by zeroing the vectors along a subspace.
+
+    Usecase: allow debiasing along high-dimensional, non-gender directions.
 
     Parameters:
         embedding (WordEmbedding): The word embedding to debias.
+        subspace (numpy.ndarray): The subspace to zero out.
         out_path (Path):
             The path to save the new embedding to.
         exclusions (Iterable[str]):
@@ -882,15 +886,19 @@ def debias_bolukbasi(embedding, direction, out_path, exclusions=None):
 
     Returns:
         WordEmbedding: The debiased word embedding.
+
+    Raises:
+        ValueError: If the subspace dimensions do not match that of the
+            embedding.
     """
     if out_path.exists():
         return WordEmbedding.load_word2vec_file(out_path)
-    if len(direction) != embedding.vectors.shape[1]:
+    if len(subspace) != embedding.vectors.shape[1]:
         raise ValueError(
-            f'Direction has {len(direction)} dimensions '
+            f'Subspace has {len(subspace)} dimensions '
             f'but vectors have {embedding.vectors.shape[1]}.'
         )
-    new_vectors = _bolukbasi_debias(embedding, direction, exclusions)
+    new_vectors = _bolukbasi_debias(embedding, subspace, exclusions)
     new_vectors = normalize(new_vectors)
     new_embedding = WordEmbedding.from_vectors(embedding.words, new_vectors)
     new_embedding.source = out_path
@@ -978,41 +986,50 @@ def debias_embedding(embedding, params):
 
 # bias measurements
 
-def measure_projection_bias(embedding, params):
+def measure_projection_bias(embedding, subspace_aggregation, gender_pairs_file, biased_words_file, bias_strictness):
     """Measure the bias by projecting onto the gender direction.
 
     Parameters:
         embedding (WordEmbedding): A word embedding.
-        params (NameSpace): The experiment parameters.
+        subspace_aggregation (str): Method of determining the gender subspace.
+        gender_pairs_file (Path): Path to a list of gendered word pairs.
+        biased_words_file (Path): Path to a list of potentially biased words.
+        bias_strictness (float): Bias strictness parameter.
 
     Returns:
         float: The measured bias.
     """
-    direction = define_gender_direction(embedding, params)
-    biased_words = read_word_list(Path(params.biased_words_file))
+    direction = define_gender_direction(
+        embedding,
+        subspace_aggregation,
+        gender_pairs_file,
+    )
+    direction_vector = normalize(direction)
+    biased_words = read_word_list(biased_words_file)
     word_biases = []
     for word in biased_words:
         if word not in embedding:
             continue
-        word_vector = embedding[word]
-        direction_vector = normalize(direction)
-        raw_bias = np.dot(word_vector, direction_vector)
-        word_biases.append(abs(raw_bias)**params.bias_strictness)
+        word_biases.append(
+            abs(np.dot(embedding[word], direction_vector))
+            ** bias_strictness
+        )
     return mean(word_biases)
 
 
-def measure_analogy_bias(embedding, params):
+def measure_analogy_bias(embedding, gender_pairs_file, biased_words_file):
     """Measure the bias by projecting onto the gender direction.
 
     Parameters:
         embedding (WordEmbedding): A word embedding.
-        params (NameSpace): The experiment parameters.
+        gender_pairs_file (Path): Path to a list of gendered word pairs.
+        biased_words_file (Path): Path to a list of potentially biased words.
 
     Returns:
         float: The measured bias.
     """
-    gender_pairs = read_gender_pairs(Path(params.subspace_words_file))
-    biased_words = read_word_list(Path(params.biased_words_file))
+    gender_pairs = read_gender_pairs(gender_pairs_file)
+    biased_words = read_word_list(biased_words_file)
     biased_words = [word for word in biased_words if word in embedding]
     distances = []
     for male_word, female_word in gender_pairs:
@@ -1029,9 +1046,19 @@ def measure_analogy_bias(embedding, params):
 
 def measure_bias(embedding, params):
     if params.bias_metric == 'projection':
-        return measure_projection_bias(embedding, params)
+        return measure_projection_bias(
+            embedding,
+            params.subspace_aggregation,
+            params.subspace_words_file,
+            params.biased_words_file,
+            params.bias_strictness,
+        )
     elif params.bias_metric == 'analogy':
-        return measure_analogy_bias(embedding, params)
+        return measure_analogy_bias(
+            embedding,
+            params.subspace_words_file,
+            params.biased_words_file,
+        )
     else:
         raise ValueError(f'unknown embedding transform {params.bias_metric}')
 
