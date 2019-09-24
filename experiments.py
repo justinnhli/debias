@@ -841,7 +841,8 @@ def _bolukbasi_debias(embedding, direction, exclusions=None):
     new_vectors = reject(embedding.vectors, direction)
     # put the exclusions back in
     for word in exclusions:
-        new_vectors[embedding.index(word)] = embedding[word]
+        if word in embedding:
+            new_vectors[embedding.index(word)] = embedding[word]
     return normalize(new_vectors)
 
 
