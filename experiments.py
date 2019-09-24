@@ -794,7 +794,18 @@ def define_pca_gender_direction(embedding, gender_pairs):
 
 
 def align_gender_direction(embedding, gender_direction, gender_pairs):
-    # if result is opposite the average female->male vector, flip it
+    """Make sure the direction is female->male, not vice versa.
+
+    Parameters:
+
+    Parameters:
+        embedding (WordEmbedding): A word embedding.
+        gender_direction (numpy.ndarray): A male->female or female->male vector.
+        gender_pairs (Iterable[Tuple[str, str]]): A list of male-female word pairs.
+
+    Returns:
+        numpy.ndarray: A female->male vector.
+    """
     total = 0
     for male_word, female_word in gender_pairs:
         if male_word not in embedding or female_word not in embedding:
