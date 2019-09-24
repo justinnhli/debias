@@ -944,7 +944,6 @@ def debias_bolukbasi_original(embedding, gender_pairs, gendered_words, equalize_
     gender_direction = gender_direction[np.newaxis, :]
     new_vectors = _bolukbasi_debias(embedding, gender_direction, gendered_words)
     new_vectors = _bolukbasi_equalize(embedding, new_vectors, gender_direction, equalize_pairs)
-    new_vectors = normalize(new_vectors)
     new_embedding = WordEmbedding.from_vectors(embedding.words, new_vectors)
     new_embedding.source = out_path
     with redirect_stderr(open(os.devnull)):
