@@ -1,6 +1,7 @@
 import numpy as np
 
 def normalize(vectors):
+    # type: (numpy.ndarray) -> numpy.ndarray
     """Normalize vectors.
 
     Parameters:
@@ -20,6 +21,7 @@ def normalize(vectors):
 
 
 def project(vectors, bases, change_coords=False):
+    # type: (numpy.ndarray, numpy.ndarray, bool) -> numpy.ndarray
     """Project the vectors on to the subspace formed by the bases.
 
     Parameters:
@@ -50,6 +52,7 @@ def project(vectors, bases, change_coords=False):
 
 
 def reject(vectors, bases):
+    # type: (numpy.ndarray, numpy.ndarray) -> numpy.ndarray
     """Reject the vectors from the subspace formed by the bases.
 
     Parameters:
@@ -63,6 +66,7 @@ def reject(vectors, bases):
 
 
 def recenter(vectors):
+    # type: (numpy.ndarray) -> numpy.ndarray
     """Redefine vectors as coming from their centroid.
 
     Parameters:

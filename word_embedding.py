@@ -1,5 +1,8 @@
-from os import devnull
+
 from contextlib import redirect_stderr
+from os import devnull
+from pathlib import Path
+from typing import List, Iterator, Tuple, Optional
 
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import WordEmbeddingsKeyedVectors, Word2VecKeyedVectors
@@ -18,6 +21,7 @@ class WordEmbedding:
     """
 
     def __init__(self, dimensions=None, gensim_obj=None, source=None):
+        # type: (Optional[int], Optional[gensim.Word2VecKeyedVectors], Optional[Path]) -> None
         """Initialize a word embedding.
 
         At least one of dimensions and gensim_obj must be provided. If both are
@@ -25,8 +29,7 @@ class WordEmbedding:
 
         Parameters:
             dimensions (int): The number of dimensions of the embedding.
-            gensim_obj (gensim.Word2VecKeyedVectors):
-                A gensim word embedding or related model.
+            gensim_obj (gensim.Word2VecKeyedVectors): A gensim word embedding or related model.
             source (Path): The path of the source file.
 
         Raises:
@@ -57,6 +60,7 @@ class WordEmbedding:
 
     @property
     def dimensions(self):
+        # type: () -> int
         """Get the dimensions of the word embedding.
 
         Returns:
@@ -66,6 +70,7 @@ class WordEmbedding:
 
     @property
     def words(self):
+        # type: () -> List[str]
         """Get the words in the word embedding.
 
         Returns:
@@ -75,6 +80,7 @@ class WordEmbedding:
 
     @property
     def vectors(self):
+        # type: () -> numpy.ndarray
         """Get the vectors in the word embedding.
 
         Returns:
@@ -83,17 +89,21 @@ class WordEmbedding:
         return self.keyed_vectors.vectors
 
     def __len__(self):
+        # type: () -> int
         return len(self.keyed_vectors.vocab)
 
     def __contains__(self, word):
+        # type: (str) -> bool
         return word in self.keyed_vectors.vocab
 
     def __setitem__(self, word, vector):
+        # type: (str, numpy.ndarray) -> None
         if not isinstance(word, str):
             raise ValueError(f'word must be a str but got {str}')
         self.keyed_vectors[word] = vector
 
     def __getitem__(self, word):
+        # type: (str) -> numpy.ndarray
         if not isinstance(word, str):
             raise ValueError(f'word must be a str but got {str}')
         if word not in self:
@@ -101,7 +111,8 @@ class WordEmbedding:
         return self.keyed_vectors[word]
 
     def index(self, word):
-        """Get the index of the word in the internal representation
+        # type: (str) -> int
+        """Get the index of the word in the internal representation.
 
         Returns:
             int: The index of the word in the Word2VecKeyedVectors.
@@ -109,6 +120,7 @@ class WordEmbedding:
         return self.keyed_vectors.vocab[word].index
 
     def items(self):
+        # type: () -> Iterator[Tuple[str, numpy.ndarray]]
         """Get the words and vectors in the word embedding.
 
         Yields:
@@ -119,6 +131,7 @@ class WordEmbedding:
             yield word, self[word]
 
     def save(self, path=None):
+        # type: (Optional[Path]) -> None
         """Save the word embedding in word2vec format.
 
         Parameters:
@@ -134,6 +147,7 @@ class WordEmbedding:
         self.keyed_vectors.save_word2vec_format(str(path))
 
     def words_near_vector(self, vector, k=10):
+        # type: (numpy.ndarray, int) -> List[Tuple[str, float]]
         """Find words near a given vector.
 
         Parameters:
@@ -146,6 +160,7 @@ class WordEmbedding:
         return self.keyed_vectors.similar_by_vector(vector, topn=k)
 
     def words_near_word(self, word, k=10):
+        # type: (str, int) -> List[Tuple[str, float]]
         """Find words near a given word.
 
         Parameters:
@@ -158,6 +173,7 @@ class WordEmbedding:
         return self.words_near_vector(self[word], k=k)
 
     def distance(self, word1, word2):
+        # type: (str, str) -> float
         """Get the distance between two words.
 
         Parameters:
@@ -171,6 +187,7 @@ class WordEmbedding:
 
     @staticmethod
     def load_fasttext_file(path):
+        # type: (Path) -> WordEmbedding
         """Load from a FastText .bin file.
 
         Parameters:
@@ -188,6 +205,7 @@ class WordEmbedding:
 
     @staticmethod
     def load_word2vec_file(path):
+        # type: (Path) -> WordEmbedding
         """Load from a word2vec file.
 
         Parameters:
@@ -205,6 +223,7 @@ class WordEmbedding:
 
     @staticmethod
     def from_vectors(words, vectors):
+        # type: (List[str], numpy.ndarray) -> WordEmbedding
         """Create a WordEmbedding from words and their vectors.
 
         Parameters:

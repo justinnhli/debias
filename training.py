@@ -1,16 +1,19 @@
 import subprocess
+from typing import Any, Optional
+from pathlib import Path
 
 from constants import MODELS_PATH
 from word_embedding import WordEmbedding
 
 
 def create_fasttext_model(corpus_file, method='cbow', out_file=None, **kwargs):
+    # type: (Path, str, Optional[Path], **Any) -> WordEmbedding
     """Load or create a FastText word embedding.
 
     Parameters:
         corpus_file (Path): The path of the corpus file.
         method (str): The model type. Must be either 'cbow' or 'skipgram'.
-        out_file (Path): The output path of the model. Optional.
+        out_file (Optional[Path]): The output path of the model.
         **kwargs: Other keyword arguments.
 
     Returns:

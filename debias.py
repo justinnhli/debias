@@ -6,6 +6,7 @@ from word_embedding import WordEmbedding
 
 
 def _define_mean_bias_subspace(embedding, word_pairs, **kwargs):
+    # type: (WordEmbedding, Iterable[Tuple[str, str]], **Any) -> numpy.ndarray
     """Calculate the gender direction using the Euclidean mean.
 
     Parameters:
@@ -30,11 +31,12 @@ def _define_mean_bias_subspace(embedding, word_pairs, **kwargs):
 
 
 def _define_pca_bias_subspace(embedding, words, subspace_dimensions, **kwargs):
+    # type: (WordEmbedding, Iterable[Iterable[str]], int, **Any) -> numpy.ndarray
     """Calculate the gender direction using PCA.
 
     Parameters:
         embedding (WordEmbedding): A word embedding.
-        words (Iterable[str]]): A collection of definitional words.
+        words (Iterable[Iterable[str]]): A collection of definitional words.
         subspace_dimensions (int): The number of principle components to use.
         **kwargs: Other keyword arguments.
 
@@ -47,7 +49,7 @@ def _define_pca_bias_subspace(embedding, words, subspace_dimensions, **kwargs):
     matrix = recenter(np.array([
         embedding[word] for word in words
         if word in embedding
-    ]))
+        ]))
     if not matrix:
         raise ValueError('embedding does not contain any of the definitional words.')
     matrix = np.array(matrix)
@@ -57,9 +59,8 @@ def _define_pca_bias_subspace(embedding, words, subspace_dimensions, **kwargs):
 
 
 def _align_gender_direction(embedding, gender_direction, gender_pairs):
+    # type: (WordEmbedding, numpy.ndarray, Iterable[Tuple[str, str]]) -> numpy.ndarray
     """Make sure the direction is female->male, not vice versa.
-
-    Parameters:
 
     Parameters:
         embedding (WordEmbedding): A word embedding.
@@ -80,7 +81,24 @@ def _align_gender_direction(embedding, gender_direction, gender_pairs):
         gender_direction = -gender_direction
     return gender_direction
 
-def define_bias_subspace(embedding, word_groups, subspace_dimensions=1, subspace_method='pca', **kwargs):
+def define_bias_subspace(embedding, word_groups, subspace_method='pca', subspace_dimensions=1, **kwargs):
+    # type: (WordEmbedding, Iterable[Iterable[str]], Optional[str], Optional[int], **Any) -> numpy.ndarray
+    """Define a bias subspace.
+
+    Parameters:
+        embedding (WordEmbedding): A word embedding.
+        word_groups (Iterable[Iterable[str]]): A collection of definitional words.
+        subspace_method (Optional[str]): The method to crate the subspace.
+            Must be 'pca' or 'mean'.
+        subspace_dimensions (Optional[int]): The number of principle components to use.
+        **kwargs: Other keyword arguments.
+
+    Returns:
+        numpy.ndarray: The bias subspace.
+
+    Raises:
+        ValueError: If subspace_method is invalid.
+    """
     if subspace_method == 'mean':
         return _define_mean_bias_subspace(embedding, word_groups, **kwargs)
     elif subspace_method == 'pca':
@@ -90,7 +108,8 @@ def define_bias_subspace(embedding, word_groups, subspace_dimensions=1, subspace
 
 
 def bolukbasi_debias_original(embedding, word_pairs, out_file, excludes=None, mirrors=None, **kwargs):
-    """Debias a word embedding using Bolukbasi's original algorithm
+    # type: (WordEmbedding, Iterable[Tuple[str, str]], Path, Iterable[str], Iterable[Tuple[str, str]], **Any) -> WordEmbedding
+    """Debias a word embedding using Bolukbasi's original algorithm.
 
     Adapted from https://github.com/tolga-b/debiaswe/blob/master/debiaswe/debias.py#L19
     Commit 10277b23e187ee4bd2b6872b507163ef4198686b on 2018-04-02

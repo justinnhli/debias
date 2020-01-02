@@ -1,13 +1,16 @@
+from pathlib import Path
 from random import Random
+from typing import Any, Iterable, Sequence, Iterator
 
 
 def _randomly_swap_words(word_groups, *strings, random_seed=8675309, **kwargs):
+    # type: (Iterable[Iterable[str]], *str, Any, **Any) -> Iterator[str]
     """Swap words in strings with another randomly chosen word.
 
     Parameters:
-        word_groups (Iterable[Sequence[str, str]]): A collection of word groups to swap.
+        word_groups (Iterable[Iterable[str]]): A collection of word groups to swap.
         *strings (str): The strings to swap in.
-        random_seed (any): The random seed for the swapping. Optional.
+        random_seed (Any): The random seed for the swapping. Optional.
         **kwargs: Other keyword parameters.
 
     Yields:
@@ -31,12 +34,13 @@ def _randomly_swap_words(word_groups, *strings, random_seed=8675309, **kwargs):
 
 
 def create_swapped_corpus(corpus_file, word_groups, out_file=None, **kwargs):
+    # type: (Path, Iterable[Iterable[str]], Optional[Path], **Any) -> Path
     """Create a randomized, word-swapped corpus.
 
     Parameters:
         corpus_file (Path): The path of the input corpus file.
-        word_groups (Iterable[Iterable[str, str]]): A collection of word groups to swap.
-        out_file (Path): The path of the resulting corpus file. Optional.
+        word_groups (Iterable[Iterable[str]]): A collection of word groups to swap.
+        out_file (Optional[Path]): The path of the resulting corpus file. Optional.
         **kwargs: Other keyword parameters.
 
     Returns:
