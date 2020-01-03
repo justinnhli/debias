@@ -26,18 +26,17 @@ def create_fasttext_model(corpus_file, method='cbow', out_file=None, **kwargs):
         raise ValueError(f'method must be "cbow" or "skipgram" but got "{method}"')
     if out_file is None:
         out_file = MODELS_PATH.joinpath(corpus_file.name + f'.fasttext.{method}')
-    if out_file.exists():
-        return WordEmbedding.load_fasttext_file(out_file)
-    binary_file = out_file.parent.joinpath(out_file.name + '.bin')
-    if not binary_file.exists():
-        subprocess.run(
-            [
-                'fasttext', method,
-                '-input', str(corpus_file),
-                '-output', str(out_file),
-            ],
-            check=True,
-        )
-    embedding = WordEmbedding.load_fasttext_file(binary_file)
-    embedding.save(out_file)
+    if not out_file.exists():
+        binary_file = out_file.parent.joinpath(out_file.name + '.bin')
+        if not binary_file.exists():
+            subprocess.run(
+                [
+                    'fasttext', method,
+                    '-input', str(corpus_file),
+                    '-output', str(out_file),
+                ],
+                check=True,
+            )
+        embedding = WordEmbedding.load_fasttext_file(binary_file)
+        embedding.save(out_file)
     return WordEmbedding.load_word2vec_file(out_file)
