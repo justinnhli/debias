@@ -34,13 +34,13 @@ def _randomly_swap_words(word_groups, *strings, random_seed=8675309, **kwargs):
 
 
 def create_swapped_corpus(corpus_file, word_groups, out_file=None, **kwargs):
-    # type: (Path, Iterable[Iterable[str]], Optional[Path], **Any) -> Path
+    # type: (Path, Iterable[Iterable[str]], Path, **Any) -> Path
     """Create a randomized, word-swapped corpus.
 
     Parameters:
         corpus_file (Path): The path of the input corpus file.
         word_groups (Iterable[Iterable[str]]): A collection of word groups to swap.
-        out_file (Optional[Path]): The path of the resulting corpus file. Optional.
+        out_file (Path): The path of the resulting corpus file. Optional.
         **kwargs: Other keyword parameters.
 
     Returns:

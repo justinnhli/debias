@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Tuple, Iterable, Any
+
 import numpy as np
 from sklearn.decomposition import PCA
 
@@ -46,10 +49,11 @@ def _define_pca_bias_subspace(embedding, words, subspace_dimensions, **kwargs):
     Raises:
         ValueError: If none of the words are in the embedding.
     """
+    # FIXME this is wrong - normal Bolukbasi uses PCA of differences
     matrix = recenter(np.array([
         embedding[word] for word in words
         if word in embedding
-        ]))
+    ]))
     if not matrix:
         raise ValueError('embedding does not contain any of the definitional words.')
     matrix = np.array(matrix)
@@ -82,15 +86,15 @@ def _align_gender_direction(embedding, gender_direction, gender_pairs):
     return gender_direction
 
 def define_bias_subspace(embedding, word_groups, subspace_method='pca', subspace_dimensions=1, **kwargs):
-    # type: (WordEmbedding, Iterable[Iterable[str]], Optional[str], Optional[int], **Any) -> numpy.ndarray
+    # type: (WordEmbedding, Iterable[Iterable[str]], str, int, **Any) -> numpy.ndarray
     """Define a bias subspace.
 
     Parameters:
         embedding (WordEmbedding): A word embedding.
         word_groups (Iterable[Iterable[str]]): A collection of definitional words.
-        subspace_method (Optional[str]): The method to crate the subspace.
+        subspace_method (str): The method to crate the subspace.
             Must be 'pca' or 'mean'.
-        subspace_dimensions (Optional[int]): The number of principle components to use.
+        subspace_dimensions (int): The number of principle components to use.
         **kwargs: Other keyword arguments.
 
     Returns:

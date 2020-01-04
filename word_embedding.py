@@ -1,8 +1,9 @@
+"""A WordEmbedding class."""
 
 from contextlib import redirect_stderr
 from os import devnull
 from pathlib import Path
-from typing import List, Iterator, Tuple, Optional
+from typing import List, Iterator, Tuple
 
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import WordEmbeddingsKeyedVectors, Word2VecKeyedVectors
@@ -21,7 +22,7 @@ class WordEmbedding:
     """
 
     def __init__(self, dimensions=None, gensim_obj=None, source=None):
-        # type: (Optional[int], Optional[gensim.Word2VecKeyedVectors], Optional[Path]) -> None
+        # type: (int, gensim.Word2VecKeyedVectors, Path) -> None
         """Initialize a word embedding.
 
         At least one of dimensions and gensim_obj must be provided. If both are
@@ -131,7 +132,7 @@ class WordEmbedding:
             yield word, self[word]
 
     def save(self, path=None):
-        # type: (Optional[Path]) -> None
+        # type: (Path) -> None
         """Save the word embedding in word2vec format.
 
         Parameters:
