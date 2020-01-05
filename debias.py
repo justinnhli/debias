@@ -33,14 +33,14 @@ def _define_mean_bias_subspace(embedding, word_pairs, **kwargs):
     return normalize(np.mean(np.array(diff_vectors), axis=0))
 
 
-def _define_pca_bias_subspace(embedding, words, subspace_dimensions, **kwargs):
-    # type: (WordEmbedding, Iterable[Iterable[str]], int, **Any) -> numpy.ndarray
+def _define_pca_bias_subspace(matrix, subspace_dimensions=1, **kwargs):
+    # type: (numpy.ndarray, int, **Any) -> numpy.ndarray
     """Calculate the gender direction using PCA.
 
     Parameters:
-        embedding (WordEmbedding): A word embedding.
-        words (Iterable[Iterable[str]]): A collection of definitional words.
+        matrix (numpy.ndarray): A word embedding.
         subspace_dimensions (int): The number of principle components to use.
+            Defaults to 1.
         **kwargs: Other keyword arguments.
 
     Returns:
@@ -49,17 +49,9 @@ def _define_pca_bias_subspace(embedding, words, subspace_dimensions, **kwargs):
     Raises:
         ValueError: If none of the words are in the embedding.
     """
-    # FIXME this is wrong - normal Bolukbasi uses PCA of differences
-    matrix = recenter(np.array([
-        embedding[word] for word in words
-        if word in embedding
-    ]))
-    if not matrix:
-        raise ValueError('embedding does not contain any of the definitional words.')
-    matrix = np.array(matrix)
     pca = PCA(n_components=subspace_dimensions)
     pca.fit(matrix)
-    return normalize(pca.components_) # FIXME likely incorrect
+    return normalize(pca.components_) # FIXME trim down to desired dimensions
 
 
 def _align_gender_direction(embedding, gender_direction, gender_pairs):
@@ -85,8 +77,9 @@ def _align_gender_direction(embedding, gender_direction, gender_pairs):
         gender_direction = -gender_direction
     return gender_direction
 
-def define_bias_subspace(embedding, word_groups, subspace_method='pca', subspace_dimensions=1, **kwargs):
-    # type: (WordEmbedding, Iterable[Iterable[str]], str, int, **Any) -> numpy.ndarray
+
+def define_bias_subspace(vectors, subspace_method='pca', subspace_dimensions=1, **kwargs):
+    # type: (numpy.ndarray, str, int, **Any) -> numpy.ndarray
     """Define a bias subspace.
 
     Parameters:
@@ -104,9 +97,9 @@ def define_bias_subspace(embedding, word_groups, subspace_method='pca', subspace
         ValueError: If subspace_method is invalid.
     """
     if subspace_method == 'mean':
-        return _define_mean_bias_subspace(embedding, word_groups, **kwargs)
+        return _define_mean_bias_subspace(vectors, **kwargs)
     elif subspace_method == 'pca':
-        return _define_pca_bias_subspace(embedding, word_groups, subspace_dimensions=subspace_dimensions, **kwargs)
+        return _define_pca_bias_subspace(vectors, subspace_dimensions=subspace_dimensions, **kwargs)
     else:
         raise ValueError(f'unknown bias subspace definition method {subspace_method}')
 
@@ -137,7 +130,17 @@ def bolukbasi_debias_original(embedding, word_pairs, out_file, excludes=None, mi
         return WordEmbedding.load_word2vec_file(out_file)
 
     # define the bias subspace
-    bias_subspace = define_bias_subspace(embedding, word_pairs, **kwargs)
+
+    # recenter words
+    matrix = []
+    for male_word, female_word in word_pairs:
+        if male_word not in embedding or female_word not in embedding:
+            continue
+        matrix.extend(recenter(
+            np.array([embedding[male_word], embedding[female_word]])
+        ))
+
+    bias_subspace = define_bias_subspace(matrix, **kwargs)
     bias_subspace = _align_gender_direction(embedding, bias_subspace, word_pairs)
     bias_subspace = bias_subspace[np.newaxis, :]
 
