@@ -104,6 +104,40 @@ def define_bias_subspace(vectors, subspace_method='pca', subspace_dimensions=1, 
         raise ValueError(f'unknown bias subspace definition method {subspace_method}')
 
 
+def bolukbasi_debias_generalized(embedding, words, out_file, excludes=None, **kwargs):
+    # type: (WordEmbedding, Iterable[str], Path, Iterable[str], **Any) -> WordEmbedding
+    """Debias a word embedding using a generalized version of Bolukbasi's algorithm.
+
+    Parameters:
+        embedding (WordEmbedding): The word embedding to debias.
+        words (Iterable[str]): A list of words that define the bias subspace.
+        out_file (Path): The path to save the new embedding to.
+        excludes (Iterable[str]): A collection of words to be excluded from the debiasing
+        **kwargs: Other keyword arguments.
+
+    Returns:
+        WordEmbedding: The debiased word embedding.
+    """
+    if out_file.exists():
+        return WordEmbedding.load_word2vec_file(out_file)
+    matrix = recenter(np.array([embedding[word] for word in words if word in embedding]))
+    bias_subspace = _define_pca_bias_subspace(matrix, **kwargs)
+    bias_subspace = bias_subspace[np.newaxis, :]
+    # debias by rejecting the subspace and reverting the excluded words
+    if excludes is None:
+        excludes = set()
+    new_vectors = reject(embedding.vectors, bias_subspace)
+    for word in excludes:
+        if word in embedding:
+            new_vectors[embedding.index(word)] = embedding[word]
+    new_vectors = normalize(new_vectors)
+    # create a word embedding from the new vectors
+    new_embedding = WordEmbedding.from_vectors(embedding.words, new_vectors)
+    new_embedding.source = out_file
+    new_embedding.save()
+    return new_embedding
+
+
 def bolukbasi_debias_original(embedding, word_pairs, out_file, excludes=None, mirrors=None, **kwargs):
     # type: (WordEmbedding, Iterable[Tuple[str, str]], Path, Iterable[str], Iterable[Tuple[str, str]], **Any) -> WordEmbedding
     """Debias a word embedding using Bolukbasi's original algorithm.

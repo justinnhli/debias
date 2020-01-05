@@ -22,9 +22,28 @@ def create_baseline_model(corpus_file, **kwargs):
     """
     return create_fasttext_model(corpus_file, **kwargs)
 
-def create_bolukbasi_model(corpus_file, gender_pairs, mirrors=None, excludes=None, **kwargs):
+
+def create_generalized_bolukbasi_model(corpus_file, word_groups, excludes=None, **kwargs):
+    """Create a model debiased with a generalization of Bolukbasi's method.
+
+    Parameters:
+        corpus_file (Path): The text corpus.
+        word_pairs (Iterable[Tuple[str, str]]):
+            A list of gender words to define the subpsace.
+        excludes (Iterable[Tuple[str, str]]):
+            A collection of words to be excluded from the debiasing
+        **kwargs: Other keyword arguments.
+
+    Returns:
+        WordEmbedding: The model built from the corpus.
+    """
+    baseline_model = create_baseline_model(corpus_file)
+    return bolukbasi_debias_generalized(baseline_model, gender_pairs, mirrors=mirrors, **kwargs)
+
+
+def create_original_bolukbasi_model(corpus_file, gender_pairs, mirrors=None, excludes=None, **kwargs):
     # type: (Path, Iterable[Tuple[str, str]], Iterable[Tuple[str, str]], **Any) -> WordEmbedding
-    """Create a model debiased with Bolukbasi's method.
+    """Create a model debiased with Bolukbasi's original method.
 
     Parameters:
         corpus_file (Path): The text corpus.
@@ -41,6 +60,7 @@ def create_bolukbasi_model(corpus_file, gender_pairs, mirrors=None, excludes=Non
     """
     baseline_model = create_baseline_model(corpus_file)
     return bolukbasi_debias_original(baseline_model, gender_pairs, mirrors=mirrors, **kwargs)
+
 
 def create_swapped_model(corpus_file, word_pairs, **kwargs):
     # type: (Path, Iterable[Tuple[str, str]], **Any) -> WordEmbedding
